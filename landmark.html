@@ -1,0 +1,993 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Google Maps POIs & Landmark Icon Explorer by @abumuailek</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; display: flex; }
+    .left { width: 30%; padding: 20px; background: #f7f7f7; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
+    .right { flex: 1; padding: 20px; overflow-y: scroll; max-height: 100vh; }
+    input, button { width: 100%; padding: 10px; margin: 5px 0; }
+    canvas { margin-top: 20px; border: 1px solid #ccc; }
+    .accordion-section { margin-bottom: 10px; }
+    .accordion-header { cursor: pointer; background: #ddd; padding: 8px; font-weight: bold; }
+    .accordion-content { display: none; padding: 5px 10px; background: #eee; }
+    .landmark-link { display: block; margin: 3px 0; color: #007BFF; cursor: pointer; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="left">
+    <h3>Manual Input</h3>
+    <input type="text" id="landmark" placeholder="e.g. cairo_tower" />
+    <button onclick="mergeLayers()">Generate Icon</button>
+    <canvas id="resultCanvas" width="64" height="64"></canvas>
+    <a id="downloadLink" style="display:none;" download>Download PNG</a>
+  </div>
+  <div class="right" id="accordionContainer">
+    <h2>Landmark Explorer</h2>
+  </div>
+
+  <script>
+    const tree = __LANDMARK_DATA__;
+
+    function createAccordion(container, data) {
+      for (const continent in data) {
+        const continentDiv = document.createElement("div");
+        continentDiv.classList.add("accordion-section");
+
+        const header = document.createElement("div");
+        header.classList.add("accordion-header");
+        header.textContent = continent;
+        header.onclick = () => {
+          content.style.display = content.style.display === "block" ? "none" : "block";
+        };
+
+        const content = document.createElement("div");
+        content.classList.add("accordion-content");
+
+        for (const country in data[continent]) {
+          const countryDiv = document.createElement("div");
+          countryDiv.innerHTML = `<strong>${country}</strong>`;
+          for (const city in data[continent][country]) {
+            const cityDiv = document.createElement("div");
+            cityDiv.innerHTML = `<em>${city}</em>`;
+            data[continent][country][city].forEach(poi => {
+              const link = document.createElement("a");
+              link.className = "landmark-link";
+              link.textContent = poi;
+              link.onclick = () => {
+                const id = poi.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+                document.getElementById("landmark").value = id;
+                mergeLayers();
+              };
+              cityDiv.appendChild(link);
+            });
+            countryDiv.appendChild(cityDiv);
+          }
+          content.appendChild(countryDiv);
+        }
+
+        continentDiv.appendChild(header);
+        continentDiv.appendChild(content);
+        container.appendChild(continentDiv);
+      }
+    }
+
+    async function loadImage(url) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = url;
+      });
+    }
+
+    async function mergeLayers() {
+      const rawName = document.getElementById("landmark").value.trim();
+      const canvas = document.getElementById("resultCanvas");
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      try {
+        const base = `https://www.google.com/maps/vt/icon/name=assets/icons/poi/iconic/${rawName}_layer_`;
+        const imgs = await Promise.all([1, 2, 3, 4].map(i => loadImage(`${base}${i}-2-medium.png&scale=4`)));
+        canvas.width = imgs[0].width;
+        canvas.height = imgs[0].height;
+        imgs.forEach(img => ctx.drawImage(img, 0, 0));
+
+        const download = document.getElementById("downloadLink");
+        download.href = canvas.toDataURL();
+        download.download = rawName.replace(/_/g, " ") + ".png";
+        download.textContent = `Download "${download.download}"`;
+        download.style.display = 'inline';
+      } catch (e) {
+        alert("Error loading images. Try a different landmark.");
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const container = document.getElementById("accordionContainer");
+      createAccordion(container, tree);
+    });
+  </script>
+
+  <script>
+    const __LANDMARK_DATA__ = {
+  "North America": {
+    "Canada": {
+      "Montreal Biodome": [
+        "Montreal Museum of Archaeology and History",
+        "Notre-Dame Basilica of Montreal",
+        "Saint Joseph\u2019s Oratory of Mount Royal",
+        "The Montreal Museum of Fine Arts",
+        "Montreal City Hall"
+      ],
+      "Toronto": [
+        "Aga Khan Museum",
+        "Art Gallery of Ontario"
+      ],
+      "Casa Loma": [
+        "CN Tower",
+        "Gooderham Building",
+        "Ontario Science Center",
+        "Royal Ontario Museum"
+      ],
+      "Scarborough Civic Centre": [
+        "Toronto Old City Hall"
+      ],
+      "Canada Place": [
+        "Marine Building",
+        "Museum of Anthropology at UBC"
+      ],
+      "Science World": [
+        "Vancouver Art Gallery"
+      ],
+      "Guadalajara": [
+        "Bas\u00edlica de Nuestra Se\u00f1ora de Zapopan",
+        "Catedral de Guadalajara (Catedral Bas\u00edlica de la Asunci\u00f3n de Mar\u00eda Sant\u00edsima)"
+      ],
+      "Museo Caba\u00f1as": [
+        "Templo Expiatorio del Sant\u00edsimo Sacramento"
+      ],
+      "Mexico City": [
+        "Bas\u00edlica de Santa Mar\u00eda de Guadalupe"
+      ],
+      "Castillo de Chapultepec": [
+        "Catedral Metropolitana de la Ciudad de M\u00e9xico",
+        "El \u00c1ngel de la Independencia",
+        "Monumento a la Revoluci\u00f3n",
+        "Museo Nacional de Antropolog\u00eda"
+      ],
+      "Museo Soumaya": [
+        "Palacio de Bellas Artes"
+      ],
+      "Boston": [
+        "Bunker Hill Monument",
+        "Faneuil Hall Marketplace",
+        "Institute of Contemporary Art",
+        "Isabella Stewart Gardner Museum",
+        "Museum of Fine Arts, Boston",
+        "Old North Church"
+      ],
+      "Cloud Gate": [
+        "Field Museum",
+        "John Hancock Center",
+        "Museum of Contemporary Art of Chicago",
+        "Museum of Science & Industry, Chicago",
+        "The Art Institute of Chicago",
+        "Willis Tower"
+      ],
+      "Houston": [
+        "Holocaust Museum Houston",
+        "Houston City Hall",
+        "Houston Museum of Natural Science",
+        "JPMorgan Chase Tower",
+        "San Jacinto Battleground State Historical Site",
+        "Space Center Houston",
+        "Williams Tower"
+      ],
+      "Dolby Theatre": [
+        "Griffith Observatory",
+        "Los Angeles County Museum of Art",
+        "Santa Monica Pier"
+      ],
+      "The Getty Villa": [
+        "Walt Disney Concert Hall"
+      ],
+      "Miami": [
+        "Adrienne Arsht Center for the Performing Arts of Miami"
+      ],
+      "Cape Florida Lighthouse": [
+        "Freedom Tower at Miami Dade College",
+        "P\u00e9rez Art Museum Miami",
+        "Phillip and Patricia Frost Museum of Science",
+        "Vizcaya Museum & Gardens"
+      ],
+      "New York": [
+        "Empire State Building",
+        "Flatiron Building",
+        "One World Trade Center",
+        "Rockefeller Center",
+        "Saint Patrick\u2019s Cathedral",
+        "Solomon R. Guggenheim Museum"
+      ],
+      "Eastern State Penitentiary": [
+        "Independence Hall",
+        "Philadelphia City Hall",
+        "Philadelphia Museum of Art"
+      ],
+      "Alcatraz Island": [
+        "Coit Tower",
+        "De Young Museum",
+        "Ferry Building",
+        "Palace of Fine Arts"
+      ],
+      "Seattle": [
+        "Museum of History & Industry",
+        "Museum of Pop Culture",
+        "Seattle Art Museum",
+        "Seattle Public Library",
+        "Smith Tower"
+      ],
+      "Space Needle": [
+        "The Museum of Flight",
+        "The Seattle Great Wheel"
+      ],
+      "Washington": [
+        "George Washington Equestrian Statue"
+      ],
+      "Lincoln Memorial": [
+        "Museum of African American History and Culture",
+        "National Gallery of Art",
+        "Smithsonian National Air and Space Museum",
+        "Smithsonian National Museum of Natural History"
+      ],
+      "United States Capitol": [
+        "Washington Monument",
+        "Washington National Cathedral"
+      ]
+    }
+  },
+  "Europe": {
+    "Austria": {
+      "Karlskirche": [
+        "Kunsthistorisches Museum Wien",
+        "Rathaus Der Stadt Wien"
+      ],
+      "Baku": [
+        "Azerbaijan Carpet Museum"
+      ],
+      "Bibiheybat": [
+        "Flame Towers",
+        "Heydar Aliyev Center",
+        "Palace of the Shirvanshahs",
+        "T\u0259z\u0259 Pir Mosque"
+      ],
+      "Bruges": [
+        "Basiliek van het Heilig Bloed"
+      ],
+      "Atomium": [
+        "Cath\u00e9drale des Saints Michel et Gudule",
+        "\u00c9glise Notre-Dame des Victoires au Sablon",
+        "H\u00f4tel de Ville de Bruxelles",
+        "Mus\u00e9e des Instruments de Musique",
+        "Mus\u00e9e royal de l'arm\u00e9e et de l'histoire militaire",
+        "Palais Royal de Bruxelles"
+      ],
+      "Dominikanski samostan": [
+        "Franjeva\u010dki samostan i crkva"
+      ],
+      "Prague": [
+        "Chr\u00e1m Matky Bo\u017e\u00ed p\u0159ed T\u00fdnem"
+      ],
+      "B\u00f8rsen": [
+        "Dansk Arkitektur Center"
+      ],
+      "K\u00f8benhavns R\u00e5dhus": [
+        "Operaen"
+      ],
+      "Nice": [
+        "Basilique Notre-Dame de l\u2019Assomption",
+        "Cath\u00e9drale Saint-Nicolas de Nice",
+        "Cath\u00e9drale Sainte-R\u00e9parate de Nice"
+      ],
+      "Fondation Maeght": [
+        "Mus\u00e9e d'Art Moderne et d\u2019Art Contemporain",
+        "Mus\u00e9e des Beaux-Arts de Nice"
+      ],
+      "T\u00eate Carr\u00e9e": [
+        "Villa Mass\u00e9na, mus\u00e9e d\u2019art et d\u2019histoire"
+      ],
+      "Arc de Triomphe": [
+        "Basilique du Sacr\u00e9-C\u0153ur de Montmartre",
+        "Cath\u00e9drale Notre-Dame de Paris"
+      ],
+      "Panth\u00e9on": [
+        "Place de la Concorde"
+      ],
+      "Brandenburger Tor": [
+        "Das The Wall Museum and der East Side Gallery",
+        "Denkmal f\u00fcr die Ermordeten Juden Europas"
+      ],
+      "Kaiser-Wilhelm-Ged\u00e4chtniskirche": [
+        "Pergamonmuseum"
+      ],
+      "K\u00f6lnTriangle": [
+        "Museum Ludwig",
+        "Museum Schn\u00fctgen",
+        "Schl\u00f6sser Br\u00fchl-UNESCO - Welterbe",
+        "Schokoladenmuseum K\u00f6ln"
+      ],
+      "Frankfurter R\u00f6mer": [
+        "Historisches Museum Frankfurt"
+      ],
+      "Kaiserdom St Bartholom\u00e4us": [
+        "Museum MMK F\u00fcr Moderne Kunst",
+        "St\u00e4del Museum"
+      ],
+      "Alte Pinakothek": [
+        "BMW Museum"
+      ],
+      "Acropolis of Athens": [
+        "Athens Concert Hall",
+        "Benaki Museum",
+        "National Archaeological Museum"
+      ],
+      "Stili Olimpou Dios": [
+        "Temple of Hephaestus"
+      ],
+      "H\u0151s\u00f6k Tere": [
+        "Magyar \u00c1llami Operah\u00e1z"
+      ],
+      "Florence": [
+        "Basilica di Santa Croce di Firenze",
+        "Basilica di Santa Maria Novella"
+      ],
+      "Campanile di Giotto": [
+        "Cattedrale di Santa Maria del Fiore"
+      ],
+      "Milan": [
+        "Basilica di San Lorenzo Maggiore",
+        "Basilica di Sant\u2019Ambrogio"
+      ],
+      "Duomo di Milano": [
+        "Galleria Vittorio Emanuele II",
+        "Palazzo Reale di Milano"
+      ],
+      "Pinacoteca di Brera": [
+        "Santa Maria delle Grazie"
+      ],
+      "Teatro alla Scala": [
+        "Rome / Vatican City",
+        "Basilica di San Pietro",
+        "Basilica Papale di Santa Maria Maggiore"
+      ],
+      "Venice": [
+        "Basilica di San Marco",
+        "Basilica di Santa Maria della Salute",
+        "Basilica Santa Maria Gloriosa dei Frari",
+        "Ca\u2019 Pesaro Galleria Internazionale d\u2019Arte Moderna"
+      ],
+      "De Oude Kerk": [
+        "Het Scheepvaartmuseum"
+      ],
+      "Magna Plaza": [
+        "NEMO Science Museum",
+        "Rijksmuseum",
+        "Stedelijk Museum Amsterdam",
+        "Van Gogh Museum"
+      ],
+      "Frammuseet": [
+        "MUNCH Museum",
+        "Operahuset Oslo"
+      ],
+      "Centrum Nauki Kopernik": [
+        "Muzeum Fryderyka Chopina w Warszawie",
+        "Muzeum Pa\u0142acu Kr\u00f3la Jana III w Wilanowie"
+      ],
+      "Muzeum Powstania Warszawskiego": [
+        "Pa\u0142ac Kultury i Nauki"
+      ],
+      "Pa\u0142ac na Wyspie": [
+        "POLIN Muzeum Historii \u017byd\u00f3w Polskich",
+        "Zamek Kr\u00f3lewski w Warszawie"
+      ],
+      "Lisbon": [
+        "Arco da Rua Augusta",
+        "Elevador de Santa Justa"
+      ],
+      "Mosterio dos Jer\u00f3nimos": [
+        "Museu Arqueol\u00f3gico do Carmo",
+        "Santuario de Cristo Rei"
+      ],
+      "Igreja do Carmo": [
+        "Igreja e Torre dos Cl\u00e9rigos",
+        "Igreja Paroquial de Santo Ildefonso"
+      ],
+      "Biserica M\u0103n\u0103stirii Stavropoleos": [
+        "Casa de Economii \u0219i Consemna\u021biuni",
+        "Muzeul Na\u021bional de Art\u0103"
+      ],
+      "Moscow": [
+        "All-Russian Exhibition Center"
+      ],
+      "Bolshoi Theatre": [
+        "Cathedral of Christ the Saviour"
+      ],
+      "Lenin\u2019s Mausoleum": [
+        "Museum of Cosmonautics",
+        "Saint Basil\u2019s Cathedral",
+        "State Historical Museum"
+      ],
+      "The Moscow Kremlin": [
+        "The State Tretyakov Gallery",
+        "Tsaritsyno Museum-Reserve"
+      ],
+      "Bronze Horseman": [
+        "Kazan Cathedral"
+      ],
+      "Mariinsky Theatre": [
+        "Peter and Paul Fortress"
+      ],
+      "Peterhof": [
+        "Saint Michael\u2019s Castle",
+        "Saint Isaac\u2019s Cathedral",
+        "Savior on the Spilled Blood",
+        "State Hermitage Museum",
+        "The State Russian Museum, Mikhailovsky Palace",
+        "Yusupov Palace"
+      ],
+      "La Sagrada Familia": [
+        "Monument a Colom"
+      ],
+      "Madrid": [
+        "Catedral de Santa Mar\u00eda la Real de la Almudena"
+      ],
+      "Estadio Santiago Bernab\u00e9u": [
+        "Museo Nacional del Prado"
+      ],
+      "Palacio de Cristal": [
+        "Palacio Real de Madrid"
+      ],
+      "Drottningholms Slott": [
+        "Fotografiska Museum"
+      ],
+      "Kungliga Slottet": [
+        "Nobel Prize Museum"
+      ],
+      "Kunsthaus Z\u00fcrich": [
+        "Landesmuseum Z\u00fcrich",
+        "Museum Rietberg"
+      ],
+      "\u0130stanbul": [
+        "Ayasofya-i Kebir Cami-i \u015eerifi"
+      ],
+      "Theodosius Dikilita\u015f\u0131": [
+        "Topkap\u0131 Saray\u0131 Museum"
+      ],
+      "Kiev Pechersk Lavra": [
+        "Mariynsky Palace",
+        "National Museum of the History of Ukraine in the Second World War",
+        "Saint Andrew's Church",
+        "Saint Michael's Golden-Domed Monastery",
+        "Saint Sophia's Cathedral",
+        "Saint Volodymyr\u2019s Cathedral"
+      ],
+      "Edinburgh": [
+        "Edinburgh Castle"
+      ],
+      "Greyfriars Kirkyard": [
+        "National Galleries of Scotland: Modern One",
+        "National Museum of Scotland",
+        "Saint Giles\u2019 Cathedral",
+        "Scott Monument"
+      ],
+      "Big Ben": [
+        "Buckingham Palace",
+        "Kensington Palace"
+      ],
+      "London Eye": [
+        "Saint Paul\u2019s Cathedral",
+        "The British Museum",
+        "Tower of London"
+      ]
+    }
+  },
+  "Asia": {
+    "Cambodia": {
+      "Angkor Wat": [
+        "Pre Rup Temple",
+        "Preah Ang Chek Preah Ang Chorm Shrine",
+        "Preah Khan Temple",
+        "Ta Prohm Temple"
+      ],
+      "Beijing": [
+        "Lama Temple"
+      ],
+      "Ming Dynasty Tombs": [
+        "Summer Palace",
+        "The Palace Museum",
+        "Temple of Heaven"
+      ],
+      "Shanghai": [
+        "China Art Museum",
+        "Jade Buddha Temple",
+        "Jing\u2019an Temple",
+        "Oriental Pearl TV Tower",
+        "Shanghai City God Temple",
+        "Shanghai Museum",
+        "Shanghai Natural History Museum",
+        "Shanghai Science and Technology Museum",
+        "Shanghai Tower"
+      ],
+      "Hong Kong": [
+        "Bank of China Tower",
+        "Hong Kong Convention and Exhibition Center",
+        "Hong Kong Cultural Center",
+        "Hong Kong Museum of History",
+        "Hong Kong Observation Wheel & AIA Vitality Park",
+        "Sky 100 Hong Kong Observation Deck",
+        "Sik Sik Yuen Wong Tai Sin Temple",
+        "The Center",
+        "The Peak Tower"
+      ],
+      "Bengaluru Fort": [
+        "Bengaluru Palace",
+        "High Court of Karnataka",
+        "Radha Krishna Temple ISKCON",
+        "St. Mary's Basilica, Bengaluru",
+        "Tipu Sultan\u2019s Summer Palace"
+      ],
+      "Vidhana Soudha": [
+        "Visvesvaraya Industrial & Technical Museum"
+      ],
+      "Chennai": [
+        "Arulmigu Sri Parthasarathy Perumal Temple Tiruvallikeni",
+        "Arulmigu Vadapalani Murugan Temple",
+        "Chennai Sri Kaalikambal Kamadeswarar Temple",
+        "Fort Saint George Museum",
+        "Government Museum Chennai",
+        "Greater Chennai Corporation Office",
+        "Santhome Cathedral Basilica",
+        "Shri Ashtalakshmi Temple",
+        "Delhi / New Delhi"
+      ],
+      "Jama Masjid": [
+        "Lotus Temple"
+      ],
+      "Red Fort": [
+        "Shri Laxmi Narayan Temple (Birla Mandir)"
+      ],
+      "Charminar": [
+        "Chowmahalla Palace"
+      ],
+      "Qutb Shahi Tombs": [
+        "Salar Jung Museum"
+      ],
+      "Belur Math": [
+        "Dakshineswar Kali Temple",
+        "Indian Museum"
+      ],
+      "Mumbai": [
+        "Basilica of Our Lady of the Mount Mary",
+        "Chhatrapati Shivaji Maharaj Vastu Sangrahalaya"
+      ],
+      "Flora Fountain": [
+        "Gateway of India Mumbai"
+      ],
+      "Haji Ali Dargah": [
+        "Rajabai Clock Tower",
+        "Shree Siddhivinayak Temple"
+      ],
+      "Muthukadu": [
+        "Dakshina Chitra Heritage Museum"
+      ],
+      "Masjid Raya Bandung": [
+        "Museum Geologi",
+        "Museum Konferensi Asia Afrika"
+      ],
+      "Masjid Istiqlal": [
+        "Jakarta Cathedral",
+        "Jakarta History Museum"
+      ],
+      "Monumen Nasional": [
+        "Museum Nasional Indonesia",
+        "Museum Seni Rupa dan Keramik"
+      ],
+      "Ubud": [
+        "Pura Dalem Agung Padangtegal",
+        "Pura Taman Kemuda Saraswati",
+        "Ubud Palace"
+      ],
+      "Tehran": [
+        "Azadi Tower",
+        "Golestan Palace",
+        "Masoudieh Palace",
+        "Milad Tower",
+        "Toghrol Tower"
+      ],
+      "Kiyomizu-dera": [
+        "Kyoto Imperial Palace",
+        "Kyoto Tower",
+        "Nanzen-ji Temple",
+        "Nij\u014d Castle"
+      ],
+      "Tenryu-ji": [
+        "T\u014d-ji Temple"
+      ],
+      "Nagoya": [
+        "Aichi Prefectural Museum of Art"
+      ],
+      "Atsutsa Jingu": [
+        "Chubu Electric Power MIRAI TOWER",
+        "Higahiyama Sky Towers",
+        "Kiyosu Castle",
+        "Nagoya Castle",
+        "Nagoya City Science Museum",
+        "Port of Nagoya Public Aquarium"
+      ],
+      "Giant Ferris Wheel": [
+        "Osaka Aquarium Kaiyukan",
+        "Osaka Castle",
+        "Osaka Science Museum"
+      ],
+      "Sumiyoshi Taisha": [
+        "Tower of the Sun"
+      ],
+      "Tsutenkaku": [
+        "Umeda Sky Building"
+      ],
+      "Tokyo": [
+        "Imperial Palace"
+      ],
+      "Sens\u014d-ji": [
+        "Tokyo National Museum"
+      ],
+      "Tokyo Skytree": [
+        "Tokyo Tower"
+      ],
+      "Kuala Lumpur": [
+        "Bangunan Sultan Abdul Samad"
+      ],
+      "Menara Kuala Lumpur": [
+        "Muzium Kesenian Islam Malaysia"
+      ],
+      "Muzium Negara": [
+        "Masjid Jamek Sultan Abdul Samad"
+      ],
+      "Karachi": [
+        "Frere Hall"
+      ],
+      "Masjid-e-Tooba": [
+        "Mohatta Palace Museum",
+        "National Museum of Pakistan"
+      ],
+      "Manila": [
+        "Ang Katedral ng Maynila",
+        "Binondo Church"
+      ],
+      "Fort Santiago": [
+        "Jos\u00e9 Rizal Monument",
+        "Minor Basilica of San Sebastian",
+        "Minor Basilica of the Black Nazarene",
+        "National Museum of Fine Arts",
+        "Malaca\u00f1ang Palace"
+      ],
+      "Jeddah": [
+        "Al Rahmah Mosque",
+        "Fakieh Aquarium",
+        "Jaffali Mosque",
+        "King Saud Mosque",
+        "Nassif House Museum"
+      ],
+      "Riyadh": [
+        "Al Masmak Palace Museum",
+        "Al Rajhi Mosque"
+      ],
+      "At-Turaif District": [
+        "Imam Turki Bin Abdullah Grand Mosque",
+        "King Khalid Grand Mosque"
+      ],
+      "Kingdom Centre": [
+        "The Public Investment Fund Tower (PIF)"
+      ],
+      "Singapore": [
+        "ArtScience Museum",
+        "Buddha Tooth Relic Temple",
+        "Esplanade - Theatres on the Bay",
+        "National Museum of Singapore",
+        "Red Dot Design Museum",
+        "Sri Veeramakaliamman Temple",
+        "Sultan Mosque",
+        "Thian Hock Keng Temple"
+      ],
+      "Changdeokgung": [
+        "Changgyeonggung Palace",
+        "DDP (Dongdaemun Design Plaza)"
+      ],
+      "Deoksugung": [
+        "Gyeongbokgung Palace"
+      ],
+      "Jongmyo Shrine": [
+        "Lotte World Tower",
+        "N Seoul Tower",
+        "The National Folk Museum of Korea",
+        "War Memorial of Korea"
+      ],
+      "Kaohsiung": [
+        "Dadong Arts Center",
+        "Dragon and Tiger Pagodas",
+        "Fo Guang Shan Buddha Museum",
+        "Kaohsiung Museum of Fine Arts",
+        "Kaohsiung Zuoying Confucius Temple",
+        "National Kaohsiung Center for the Arts",
+        "Taichung / Dajia / Xinshe",
+        "Dajia Jenn Lann Temple"
+      ],
+      "Luce Memorial Chapel": [
+        "National Museum of Natural Science"
+      ],
+      "National Taichung Theater": [
+        "National Taiwan Museum of Fine Arts",
+        "Xinshe Castle"
+      ],
+      "Tainan": [
+        "Chimei Museum"
+      ],
+      "Taipei": [
+        "Chiang Kai-shek Memorial Hall",
+        "Dalongdong Baoan Temple",
+        "Lungshan Temple",
+        "National Dr. Sun Yat-Sen Memorial Hall",
+        "National Palace Museum",
+        "National Revolutionary Martyrs\u2019 Shrine",
+        "Taipei 101 Observatory"
+      ],
+      "Asiatique the Riverfront": [
+        "Golden Mount Temple (Wat Saket)",
+        "Jim Thompson House Museum",
+        "Temple of the Emerald Buddha - Wat Phra Si Sanphet",
+        "Wat Arun Ratchawararam Ratchawaramahawihan"
+      ],
+      "Wat Benchamabophit Dusitwanaram": [
+        "Wat Phra Chetuphon (Wat Pho)",
+        "Wat Traimit (Golden Buddha)"
+      ],
+      "Chiang Mai": [
+        "Bhubing Palace"
+      ],
+      "Pratu Tha Phae": [
+        "Three Kings Monument"
+      ],
+      "Wat Lok Moli": [
+        "Wat Phra Singh Woramahawihan",
+        "Wat Phra That Doi Kham"
+      ],
+      "Wat Suan Dok": [
+        "Wat Umong Suan Phutthatham"
+      ],
+      "Burj Khalifa": [
+        "Dubai Museum",
+        "Jumeirah Mosque"
+      ],
+      "Hanoi": [
+        "B\u1ea3o t\u00e0ng H\u1ed3 Ch\u00ed Minh"
+      ],
+      "\u0110\u00ea\u0300n Qua\u0301n Tha\u0301nh": [
+        "Ho\u00e0ng Th\u00e0nh Th\u0103ng Long",
+        "L\u0103ng Ch\u1ee7 t\u1ecbch H\u1ed3 Ch\u00ed Minh",
+        "Nh\u00e0 h\u00e1t L\u1edbn H\u00e0 N\u1ed9i"
+      ],
+      "Ph\u1ee7 Ch\u1ee7 t\u1ecbch": [
+        "V\u0103n Mi\u00ea\u0301u \u2013 Qu\u00f4\u0301c T\u01b0\u0309 Gia\u0301m"
+      ],
+      "Ho Chi Minh": [
+        "B\u1ea3o t\u00e0ng Ch\u1ee9ng t\u00edch Chi\u1ebfn tranh",
+        "B\u1ea3o t\u00e0ng L\u1ecbch s\u1eed TP.H\u1ed3 Ch\u00ed Minh",
+        "Ch\u00f9a B\u00e0 Thi\u00ean H\u1eadu -  Tu\u1ec7 Th\u00e0nh H\u1ed9i Qu\u00e1n"
+      ],
+      "Dinh \u0110\u1ed9c L\u1eadp": [
+        "Nh\u00e0 h\u00e1t Th\u00e0nh ph\u1ed1 H\u1ed3 Ch\u00ed Minh",
+        "Nh\u00e0 th\u1edd \u0110\u1ee9c B\u00e0 S\u00e0i G\u00f2n",
+        "\u1ee6y ban nh\u00e2n d\u00e2n Th\u00e0nh ph\u1ed1 H\u1ed3 Ch\u00ed Minh"
+      ],
+      "H\u1ed9i An": [
+        "H\u1ed9i Qu\u00e1n Ph\u01b0\u1edbc Ki\u1ebfn"
+      ]
+    }
+  },
+  "South America": {
+    "Argentina": {
+      "Buenos Aires": [
+        "Biblioteca Nacional Mariano Moreno"
+      ],
+      "Casa Rosada": [
+        "Centro Cultural Isl\u00e1mico Custodio de las Dos Sagradas Mezquitas Rey Fahd",
+        "Museo de Arte Latinoamericano de Buenos Aires",
+        "Museo del Agua y de la Historia Sanitaria",
+        "Museo Hist\u00f3rico Nacional del Cabildo y la Revoluci\u00f3n de Mayo",
+        "Museo Nacional de Bellas Artes"
+      ],
+      "Teatro Col\u00f3n": [
+        "Torre Monumental"
+      ],
+      "Brasilia": [
+        "Catedral Metropolitana Nossa Senhora Aparecida",
+        "Centro Cultural Banco do Brasil - Bras\u00edlia"
+      ],
+      "Memorial Jk": [
+        "Museu Nacional da Rep\u00fablica"
+      ],
+      "Pal\u00e1cio do Planalto": [
+        "Santu\u00e1rio S\u00e3o Jo\u00e3o Bosco"
+      ],
+      "Fortaleza": [
+        "Catedral Metropolitana da Fortaleza",
+        "Centro Drag\u00e3o do Mar de Arte e Cultura",
+        "Est\u00e1tua de Iracema Guardi\u00e3",
+        "Santu\u00e1rio de Nossa Senhora de F\u00e1tima",
+        "Rio de Janeiro / Niter\u00f3i",
+        "Arcos da Lapa | Aqueduto da Carioca",
+        "Catedral Metropolitana de S\u00e3o Sebasti\u00e3o do Rio de Janeiro"
+      ],
+      "Maracan\u00e3": [
+        "Museu de Arte Contempor\u00e2nea de Niter\u00f3i",
+        "Museu de Arte Moderna do Rio de Janeiro"
+      ],
+      "Museu do Amanh\u00e3": [
+        "Theatro Municipal do Rio de Janeiro"
+      ],
+      "S\u00e3o Paulo": [
+        "Catedral Metropolitana de S\u00e3o Paulo (da S\u00e9)"
+      ],
+      "Museu Catavento": [
+        "Museu de Arte de S\u00e3o Paulo Assis Chateaubriand"
+      ],
+      "Pateo do Collegio": [
+        "Pinacoteca de S\u00e3o Paulo"
+      ],
+      "Santiago": [
+        "Catedral Metropolitana de Santiago de Chile"
+      ],
+      "Centro Gabriela Mistral": [
+        "Costanera Center",
+        "Museo de la Memoria y los Derechos Humanos",
+        "Museo Nacional de Bellas Artes",
+        "Palacio de La Moneda"
+      ],
+      "Bogot\u00e1": [
+        "Casa Museo Quinta de Bol\u00edvar"
+      ],
+      "Museo del Oro": [
+        "Museo Nacional de Colombia"
+      ],
+      "Aguas Calientes": [
+        "Santuario Hist\u00f3rico de Machu Picchu"
+      ],
+      "Catedral del Cuzco": [
+        "Coro Orquestal Virgen del Carmen",
+        "Iglesia de la Compa\u00f1\u00eda de Jes\u00fas",
+        "Iglesia y Convento de Santo Domingo de Guzm\u00e1n"
+      ],
+      "Catedral de Lima": [
+        "Convento de San Francisco de Jes\u00fas el Grande",
+        "Convento M\u00e1ximo de Nuestra Se\u00f1ora del Sant\u00edsimo Rosario",
+        "Fortaleza del Real Felipe",
+        "Museo de Arte de Lima - MALI"
+      ],
+      "Museo Larco": [
+        "Palacio de Torre Tagle",
+        "Palacio Municipal de Lima"
+      ]
+    }
+  },
+  "Africa": {
+    "Egypt": {
+      "Alexandria": [
+        "Alexandria National Museum"
+      ],
+      "Bibliotheca Alexandrina": [
+        "Montaza Palace",
+        "Royal Jewellery Museum"
+      ],
+      "Serapeum of Alexandria": [
+        "Sidi Morsu Abu Al-Abbas Mosque"
+      ],
+      "Cairo / Giza": [
+        "Abdeen Palace Museum",
+        "Cairo Tower"
+      ],
+      "Giza Necropolis": [
+        "Mosque of Muhammad Ali"
+      ],
+      "Pyramid of Djoser": [
+        "Salah Al-Din Al-Ayoubi Castle",
+        "The Hanging Church"
+      ],
+      "Casablanca": [
+        "Eglise Notre Dame De Lourdes"
+      ],
+      "El Hank Lighthouse": [
+        "Hassan II Mosque"
+      ],
+      "Mosqu\u00e9e Ould el-Hamra": [
+        "Riad El Oulfa Mosque",
+        "Royal Palace",
+        "Sacred Heart Cathedral"
+      ],
+      "Marrakesh": [
+        "Badi Palace",
+        "Bahia Palace"
+      ],
+      "Koutoubia": [
+        "Porte de Bab Agnaou",
+        "Yves Saint Laurent Museum"
+      ],
+      "Nairobi": [
+        "Britam Tower",
+        "Jain Shwetamber Munisuvratswami Temple",
+        "Jamia Mosque",
+        "Kenya National Archives & Documentation Service",
+        "Kenyatta International Convention Centre",
+        "Kings Prism Towers",
+        "National Museums of Kenya",
+        "The Holy Family Minor Basilica"
+      ],
+      "Lagos": [
+        "Cathedral Church of Christ, Marina",
+        "National Museum Lagos"
+      ],
+      "National Theatre Nigeria": [
+        "Nike Art Gallery"
+      ],
+      "Cape Town": [
+        "Castle of Good Hope",
+        "District Six Museum",
+        "New Cape Point Lighthouse",
+        "Iziko Bo-Kaap Museum",
+        "Iziko South African Museum"
+      ],
+      "Johannesburg": [
+        "Apartheid Museum"
+      ],
+      "Everard Read": [
+        "Lindfield Victorian House Museum"
+      ],
+      "Mandela\u2019s House": [
+        "Museum Africa",
+        "Wits Arts Museum"
+      ]
+    }
+  },
+  "Oceania": {
+    "Australia": {
+      "Arts Centre Melbourne": [
+        "Melbourne Museum",
+        "National Gallery of Victoria",
+        "Royal Exhibition Building"
+      ],
+      "Shrine of Remembrance": [
+        "State Library Victoria"
+      ],
+      "Sydney": [
+        "Museum of Contemporary Art Australia",
+        "Saint Mary\u2019s Cathedral",
+        "SEA LIFE Sydney Aquarium",
+        "Sydney Observatory",
+        "Sydney Opera House",
+        "Sydney Town Hall"
+      ]
+    }
+  }
+};
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const container = document.getElementById("accordionContainer");
+      createAccordion(container, __LANDMARK_DATA__);
+    });
+  </script>
+</body>
+</html>
